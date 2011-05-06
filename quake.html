@@ -1,0 +1,57 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <!--
+  Copyright (c) 2011 The Native Client Authors. All rights reserved.
+  Use of this source code is governed by a BSD-style license that can be
+  found in the LICENSE file.
+  -->
+  <head>
+    <title>Quake</title>
+    <script type="text/javascript">
+      var Quake = null;
+      var paintInterval = null;
+
+      function moduleDidLoad() {
+        Quake = document.getElementById('Quake');
+        //paintInterval = setInterval(
+        //    "Quake.paint()", 5);
+      }
+
+      function pageDidUnload() {
+        clearInterval(paintInterval);
+      }
+    </script>
+  </head>
+    <body id="bodyId" onunload="pageDidUnload()">
+    <h1>Quake</h1>
+    <!-- Load the published .nexe.  This includes the 'nacl' attribute which
+    shows how to load multi-architecture modules.  Each entry in the "nexes"
+    object in the .nmf manifest file is a key-value pair: the key is the
+    runtime ('x86-32', 'x86-64', etc.); the value is a URL for the desired NaCl
+    module.  To load the debug versions of your .nexes, set the 'nacl'
+    attribute to the _dbg.nmf version of the manifest file.
+
+    Note: The 'dimensions' attribute indicates that the Quake .nexe will
+    use the 2D drawing device in the browser.
+    -->
+    This is a Native Client port of <a href="http://idsoftware.com/games/quake/quake/">Quake</a> by <a href="http://idsoftware.com">id Software</a>.
+
+<p><strong>Source code:</strong><br>
+<ul>
+  <li><a target="_blank" href="http://www.libsdl.org/projects/quake/src/q1source.zip">Original Quake</a></li>
+  <li><a target="_blank" href="http://www.libsdl.org/projects/quake/">SDL Quake</a></li>
+  <li><a target="_blank" href="http://github.com/eugenis/sdl-nacl">SDL NaCl</a></li>
+  <li><a target="_blank" href="http://code.google.com/p/naclports/source/browse#svn%2Ftrunk%2Fsrc%2Fexperimental%2Fquake">NaCl Quake</a></li>
+</ul>
+
+    <embed name="nacl_module"
+           id="Quake"
+           width=800 height=600
+           nacl="quake.nmf"
+           type="application/x-nacl"
+           dimensions="2"
+           onload="moduleDidLoad();" />
+    <br />
+  </body>
+</HTML>
