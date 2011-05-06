@@ -21,13 +21,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //#define	GLTEST			// experimental stuff
 
-#define HEREPRINTS
+//#define HEREPRINTS
 #ifdef HEREPRINTS
 #include <stdio.h>
 #define HERE() printf("HERE %s:%d\n", __FILE__, __LINE__);
 #else
 #define HERE()
 #endif
+//#define fprintf(f, ...) \
+  do { printf("Writing to fd %d: ", f); \
+       printf(__VA_ARGS__); \
+       fprintf(f, __VA_ARGS__); } while (0)
 
 #define	QUAKE_GAME			// as opposed to utilities
 
