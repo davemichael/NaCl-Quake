@@ -65,14 +65,14 @@ int FileHandle::Read(void* buffer, size_t num_bytes) {
 
 // WARNING, Write is pretty much untested and probably doesn't work.
 int FileHandle::Write(void* buffer, size_t num_bytes) {
-  std::printf("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
+  PRINTF("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
   PRINTF("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
   if (position + num_bytes > file->data.size()) {
     file->data.resize(position + num_bytes);
   }
   memcpy(&file->data[position], buffer, num_bytes);
   position += num_bytes;
-  std::printf("Wrote %zd bytes successfully, setting position to %zd.\n", num_bytes, position);
+  PRINTF("Wrote %zd bytes successfully, setting position to %zd.\n", num_bytes, position);
   PRINTF("Wrote %zd bytes successfully, setting position to %zd.\n", num_bytes, position);
   return 0;
 }
@@ -260,7 +260,7 @@ int __wrap_read(int fd, void* buffer, size_t num_bytes) {
 }
 
 int nacl_file_write(int fd, void* buffer, size_t num_bytes) {
-  std::printf("nacl_file_write, fd %d, num_bytes %zd\n", fd, num_bytes);
+  PRINTF("nacl_file_write, fd %d, num_bytes %zd\n", fd, num_bytes);
   PRINTF("nacl_file_write, fd %d, num_bytes %zd\n", fd, num_bytes);
   nacl_file::FileHandle* file = nacl_file::FileManager::GetFileHandle(fd);
   if (file) {

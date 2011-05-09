@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //#define	GLTEST			// experimental stuff
 
+// dmichael:  Here's some junk I added to try to debug without a debugger.
 #define HEREPRINTS
 #ifdef HEREPRINTS
 #include <stdio.h>
@@ -28,6 +29,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 #define HERE()
 #endif
+#define FAKEFPRINTF
+#ifdef FAKEFPRINTF
+#define fprintf(f, ...) \
+do { \
+  printf("Writing to %d: '", f); \
+  printf(__VA_ARGS__); \
+  printf("'\n"); \
+  fprintf(f, __VA_ARGS__); } while (0) \
+#endif
+// dmichael:  End of junk I added
 
 #define	QUAKE_GAME			// as opposed to utilities
 
