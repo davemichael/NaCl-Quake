@@ -29,14 +29,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 #define HERE()
 #endif
+<<<<<<< HEAD
 #define FAKEFPRINTF
 #ifdef FAKEFPRINTF
 #define fprintf(f, ...) \
-do { \
-  printf("Writing to %d: '", f); \
-  printf(__VA_ARGS__); \
-  printf("'\n"); \
-  fprintf(f, __VA_ARGS__); } while (0) \
+  do { printf("Writing to fd %d: ", f); \
+       printf(__VA_ARGS__); \
+       fprintf(f, __VA_ARGS__); } while (0)
 #endif
 // dmichael:  End of junk I added
 

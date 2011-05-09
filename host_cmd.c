@@ -521,7 +521,6 @@ void Host_Savegame_f (void)
 		Con_Printf ("ERROR: couldn't open.\n");
 		return;
 	}
-	
 	fprintf (f, "%i\n", SAVEGAME_VERSION);
 	Host_SavegameComment (comment);
 	fprintf (f, "%s\n", comment);
