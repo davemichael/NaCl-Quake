@@ -22,15 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //#define	GLTEST			// experimental stuff
 
 // dmichael:  Here's some junk I added to try to debug without a debugger.
-#define HEREPRINTS
+//#define HEREPRINTS
 #ifdef HEREPRINTS
 #include <stdio.h>
 #define HERE() printf("HERE %s:%d\n", __FILE__, __LINE__);
 #else
 #define HERE()
 #endif
-<<<<<<< HEAD
-#define FAKEFPRINTF
+
+//#define FAKEFPRINTF
 #ifdef FAKEFPRINTF
 #define fprintf(f, ...) \
   do { printf("Writing to fd %d: ", f); \

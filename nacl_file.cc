@@ -16,8 +16,8 @@
 #include "geturl_handler.h"
 #include "nacl/nacl_inttypes.h"
 
-//#define PRINTF(...)
-#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(...)
+//#define PRINTF(...) printf(__VA_ARGS__)
 
 extern "C" {
 int __wrap_open(const char* pathname, int mode, int perms);
@@ -66,15 +66,13 @@ int FileHandle::Read(void* buffer, size_t num_bytes) {
 // WARNING, Write is pretty much untested and probably doesn't work.
 int FileHandle::Write(void* buffer, size_t num_bytes) {
   PRINTF("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
-  PRINTF("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
   if (position + num_bytes > file->data.size()) {
     file->data.resize(position + num_bytes);
   }
   memcpy(&file->data[position], buffer, num_bytes);
   position += num_bytes;
   PRINTF("Wrote %zd bytes successfully, setting position to %zd.\n", num_bytes, position);
-  PRINTF("Wrote %zd bytes successfully, setting position to %zd.\n", num_bytes, position);
-  return 0;
+  return num_bytes;
 }
 
 off_t FileHandle::Seek(off_t offset, int whence) {
@@ -232,8 +230,7 @@ int __wrap_open(char const *pathname, int oflags, int perms) {
   PRINTF("nacl_open, file %s mode %d perms %d\n", pathname, oflags, perms);
   if (oflags & O_WRONLY) {
     // TODO: Make appending fail if append flag is not provided.
-    PRINTF("Write mode.\n");
-    std::printf("Opening %s for writing.\n", pathname);
+    PRINTF("Opening %s for writing.\n", pathname);
     // AddEmptyFile will do nothing if the file already exists.
     nacl_file::FileManager::AddEmptyFile(StripPath(pathname));
   }
@@ -244,6 +241,10 @@ int __wrap_open(char const *pathname, int oflags, int perms) {
 
 int __wrap_close(int fd) {
   PRINTF("nacl_close, fd %d\n", fd);
+  nacl_file::FileHandle* file = nacl_file::FileManager::GetFileHandle(fd);
+  if (file) {
+    PRINTF("Closing %s\n", file->file->name.c_str());
+  }
   nacl_file::FileManager::Close(fd);
   return 0;
 }
@@ -260,7 +261,6 @@ int __wrap_read(int fd, void* buffer, size_t num_bytes) {
 }
 
 int nacl_file_write(int fd, void* buffer, size_t num_bytes) {
-  PRINTF("nacl_file_write, fd %d, num_bytes %zd\n", fd, num_bytes);
   PRINTF("nacl_file_write, fd %d, num_bytes %zd\n", fd, num_bytes);
   nacl_file::FileHandle* file = nacl_file::FileManager::GetFileHandle(fd);
   if (file) {
