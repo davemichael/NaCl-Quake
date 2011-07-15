@@ -88,7 +88,7 @@ off_t FileHandle::Seek(off_t offset, int whence) {
       break;
     case SEEK_END:
       PRINTF("SEEK_END");
-      position = static_cast<off_t>(file->data.size()) - offset - 1;
+      position = static_cast<off_t>(file->data.size()) - offset;
       break;
     default:
       break;
