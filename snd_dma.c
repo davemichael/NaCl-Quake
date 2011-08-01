@@ -164,9 +164,7 @@ void S_Startup (void)
 S_Init
 ================
 */
-void S_Init (void) {}
-void dummy()
-{
+void S_Init (void) {
 
 	Con_Printf("\nSound Initialization\n");
 
