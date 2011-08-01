@@ -5,12 +5,11 @@
 #ifndef EXAMPLES_PI_GENERATOR_H_
 #define EXAMPLES_PI_GENERATOR_H_
 
-#include <ppapi/cpp/graphics_2d.h>
-#include <ppapi/cpp/image_data.h>
-#include <ppapi/cpp/instance.h>
-#include <ppapi/cpp/rect.h>
-#include <ppapi/cpp/dev/scriptable_object_deprecated.h>
-#include <ppapi/cpp/size.h>
+#include "ppapi/cpp/graphics_2d.h"
+#include "ppapi/cpp/image_data.h"
+#include "ppapi/cpp/instance.h"
+#include "ppapi/cpp/rect.h"
+#include "ppapi/cpp/size.h"
 #include <pthread.h>
 
 #include <map>
@@ -24,18 +23,13 @@ namespace nacl_quake {
 // attributes:
 //     type="application/x-nacl"
 //     nacl="nacl_quake.nmf"
-//
-// The Instance can return a ScriptableObject representing itself.  When the
-// browser encounters JavaScript that wants to access the Instance, it calls
-// the GetInstanceObject() method.  All the scripting work is done though
-// the returned ScriptableObject.
 class QuakeInstance : public pp::Instance {
  public:
   explicit QuakeInstance(PP_Instance instance);
   virtual ~QuakeInstance();
 
   virtual bool Init(uint32_t argc, const char* argn[], const char* argv[]);
-  virtual bool HandleInputEvent(const PP_InputEvent& event);
+  virtual bool HandleInputEvent(const pp::InputEvent& event);
 
   // Update the graphcs context to the new size, and regnerate |pixel_buffer_|
   // to fit the new size as well.

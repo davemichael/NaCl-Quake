@@ -34,6 +34,8 @@ QuakeInstance::QuakeInstance(PP_Instance instance)
       width_(0),
       height_(0) {
   PRINTF("Created instance.\n");
+  // Tell the browser we want to handle all Mouse & Keyboard events.
+  RequestInputEvents(PP_INPUTEVENT_CLASS_MOUSE | PP_INPUTEVENT_CLASS_KEYBOARD);
 }
 
 QuakeInstance::~QuakeInstance() {
@@ -58,8 +60,8 @@ void QuakeInstance::DidChangeView(const pp::Rect& position,
   height_ = position.size().height();
 
   SDL_NACL_SetInstance(pp_instance(), width_, height_);
-  int lval = SDL_Init(SDL_INIT_VIDEO);
-  //assert(lval >= 0);
+  int lval = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+  assert(lval >= 0);
 }
 
 void QuakeInstance::FilesFinished() {
@@ -89,8 +91,9 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
   
 }
 
-bool QuakeInstance::HandleInputEvent(const PP_InputEvent& event) {
-  SDL_NACL_PushEvent(&event);
+bool QuakeInstance::HandleInputEvent(const pp::InputEvent& event) {
+  // TODO: Why does SDL need it to be non-const?
+  SDL_NACL_PushEvent(const_cast<pp::InputEvent*>(&event));
   return true;
 }
 
@@ -102,3 +105,4 @@ void* QuakeInstance::LaunchQuake(void* param) {
 }
 
 }  // namespace nacl_quake
+

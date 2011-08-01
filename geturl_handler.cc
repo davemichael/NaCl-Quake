@@ -41,16 +41,8 @@ bool GetURLHandler::Start(SharedURLCallbackExecutor url_callback) {
   url_callback_ = url_callback;
   pp::CompletionCallback cc = cc_factory_.NewCallback(&GetURLHandler::OnOpen);
   int32_t result = url_loader_.Open(url_request_, cc);
-  // A |result| value of PP_ERROR_WOULDBLOCK means the Open() call is not
-  // able to complete synchronously.  In this case, it is not necessarily an
-  // error, it just means that Open() will do its operation asynchronously and
-  // call |cc| when done.  In the event that Open() is able to complete
-  // synchronously (either because an error occurred, or it just worked), |cc|
-  // needs to be run here directly.
-  if (PP_ERROR_WOULDBLOCK != result)
-    cc.Run(result);
 
-  return result == PP_OK || result == PP_ERROR_WOULDBLOCK;
+  return result == PP_OK || result == PP_OK_COMPLETIONPENDING;
 }
 
 void GetURLHandler::OnOpen(int32_t result) {
@@ -98,7 +90,5 @@ void GetURLHandler::ReadBody() {
   int32_t res = url_loader_.ReadResponseBody(buffer_,
                                              sizeof(buffer_),
                                              cc);
-  if (PP_ERROR_WOULDBLOCK != res)
-    cc.Run(res);
 }
 

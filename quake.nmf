@@ -1,6 +1,6 @@
 {
-  "nexes": {
-    "x86-32": "quake32.nexe",
-    "x86-64": "quake64.nexe",
+  "program": {
+    "x86-32": {"url": "quake32.nexe"},
+    "x86-64": {"url": "quake64.nexe"}
   }
 }

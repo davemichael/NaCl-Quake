@@ -3,28 +3,21 @@ CXX:=nacl-g++
 CCFLAGS := -DSDL -O2
 CCFLAGS32 := $(CCFLAGS) -m32
 CCFLAGS64 := $(CCFLAGS) -m64
-NACL_SDK_ROOT ?= $(HOME)/native_client_sdk_0_2_803_0/
+NACL_SDK_ROOT ?= $(HOME)/native_client_sdk_0_5_984/
 SDL_ROOT ?= $(HOME)/naclports/src/packages/repository/SDL-1.2.14
 NACL_TOOLCHAIN_ROOT ?= $(NACL_SDK_ROOT)/toolchain/linux_x86
-#INCLUDES := -I. -I$(NACL_SDK_ROOT) -I$(NACL_TOOLCHAIN_ROOT)/nacl/include -I$(SDL_ROOT)/include -I$(SDL_ROOT)/SDL-1.2.14-build/include
-INCLUDES := -I. -I$(SDL_ROOT)/include -I$(SDL_ROOT)/SDL-1.2.14-build/include
+SDL_ROOT ?= $(NACL_TOOLCHAIN_ROOT)/nacl/
+INCLUDES := -I. -I$(SDL_ROOT)/include -I$(NACL_TOOLCHAIN_ROOT)/nacl/usr/include/SDL
 
-# if nacl target, copy nexe to "nacl_quake" for quake.html to launch
-# and add nacl_file.c to list of files for browser support.
 LDFLAGS = -Xlinker --wrap -Xlinker read
 LDFLAGS += -Xlinker --wrap -Xlinker open
 LDFLAGS += -Xlinker --wrap -Xlinker close
 LDFLAGS += -Xlinker --wrap -Xlinker lseek
 LDFLAGS += -Xlinker --wrap -Xlinker write
-LDFLAGS += -lnosys \
-          -lSDL \
-          -lppruntime \
-          -lppapi_cpp \
-          -lplatform \
-          -lgio \
-          -lm \
-          -lpthread \
-          -lsrpc
+LDFLAGS += -lSDL \
+           -lppapi \
+           -lppapi_cpp \
+           -lpthread
 LDFLAGS32 = $(LDFLAGS) -m32
 LDFLAGS64 = $(LDFLAGS) -m64
 CCFILES := nacl_file.cc geturl_handler.cc quake_module.cc quake_instance.cc
@@ -44,7 +37,7 @@ CFILES += cd_nacl.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c\
          net_vcr.c net_wso.c pr_cmds.c pr_edict.c pr_exec.c r_aclip.c\
          r_alias.c r_bsp.c r_draw.c r_edge.c r_efrag.c r_light.c r_main.c\
          r_misc.c r_part.c r_sky.c r_sprite.c r_surf.c r_vars.c r_varsa.S\
-         sbar.c screen.c snd_null.c sv_main.c\
+         sbar.c screen.c snd_dma.c snd_mem.c snd_mix.c snd_sdl.c stubs.c sv_main.c\
          sv_move.c sv_phys.c sv_user.c sys_nacl.c vid_sdl.c view.c wad.c\
          world.c zone.c $(X86_SRCS) $(NONX86_SRCS)
 # These files were excluded from FILES because they use instructions

@@ -128,6 +128,9 @@ void Sys_Warn (char *warning, ...)
 
 FILE IO
 
+TODO(dmichael): Use pepper FileIO to cache game assets in the browser cache;
+                tie to AppEngine for save games.
+
 ===============================================================================
 */
 
@@ -167,12 +170,11 @@ int Sys_FileRead (int handle, void *dst, int count)
 
 int Sys_FileWrite (int handle, void *src, int count)
 {
-	// UNTESTED, probably doesn't work.  At best, saves in a pretend file
-	// in memory.
+	// Saves in a pretend file in memory.
 	return nacl_file_write(handle, src, count);
 }
 
-int	Sys_FileTime (char *path)
+int Sys_FileTime (char *path)
 {
 	FILE	*f;
 	
@@ -189,13 +191,7 @@ int	Sys_FileTime (char *path)
 void Sys_mkdir (char *path)
 {
 #if defined (HAVE_MKDIR)
-
-#ifdef __WIN32__
-    mkdir (path);
-#else
     mkdir (path, 0777);
-#endif
-
 #endif
 }
 
@@ -215,17 +211,6 @@ void Sys_DebugLog(char *file, char *fmt, ...)
 
 double Sys_FloatTime (void)
 {
-#ifdef __WIN32__
-
-	static int starttime = 0;
-
-	if ( ! starttime )
-		starttime = clock();
-
-	return (clock()-starttime)*1.0/1024;
-
-#else
-
     struct timeval tp;
     struct timezone tzp; 
     static int      secbase; 
@@ -239,8 +224,6 @@ double Sys_FloatTime (void)
     }
 
     return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
-
-#endif
 }
 
 // =======================================================================
@@ -284,12 +267,6 @@ void Sys_Sleep(void)
 #else
 	extern int sched_yield(void);
 	sched_yield();
-#if 0
-        {
-          int i;
-	  for (i = 0; i < 10000; i++) ;
-        }
-#endif
 #endif
 }
 
@@ -370,7 +347,8 @@ extern int quake_main (int c, char **v)
 #if 0
 
 /*
- * we certainly can't have this in NaCl(!)  Fortunately it doesn't appear to be used anymore.
+ * We have JIT support in NaCl, but this doesn't appear to be used anymore
+ * anyway.
  */
 
 /*
