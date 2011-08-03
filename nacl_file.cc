@@ -272,7 +272,6 @@ FileHandle* FileManager::GetFileHandle(int fd) {
 }  // namespace nacl_file
 
 int __wrap_open(char const *pathname, int oflags, int perms) {
-  printf("nacl_open, file %s mode %d perms %d\n", pathname, oflags, perms);
   PRINTF("nacl_open, file %s mode %d perms %d\n", pathname, oflags, perms);
   if (oflags & O_WRONLY) {
     // TODO: Make appending fail if append flag is not provided.
