@@ -37,6 +37,7 @@ class QuakeInstance : public pp::Instance {
   virtual void DidChangeView(const pp::Rect& position, const pp::Rect& clip);
 
   void FilesFinished();
+  void DownloadedBytes(int32_t bytes);
 
   int width() const {
     return width_;

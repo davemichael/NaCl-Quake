@@ -1,0 +1,91 @@
+/* Copyright 2011 The Native Client Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+/**
+ * Set up the html and body tags so that they support a view that automatically
+ * resizes itself as you change the size of the browser window.
+ */
+html,body {
+/*  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;*/
+  background-color: #A9A9A9;
+}
+
+body {
+  font-family: Verdana, "Lucida Grande", Arial;
+  font-size: 10pt;
+  border: 0px;
+  overflow: hidden;
+}
+
+canvas {
+  border: 1px solid black;
+}
+
+/**
+ * The DIV with this id establishes the autosizing container for the NaCl
+ * module.
+ */
+#autosize_background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+button.image_button {
+  background-color: transparent;
+  border: none;
+  width: 24px;  /* Default width is 24 pixels. */
+}
+
+/**
+ * Use this EMBED class inside of the DIV with id @a autosize_background to
+ * load an auosizing NaCl module.  E.g.:
+ *  <div id="autosize_background">
+ *    <embed class="autosize" type="application/x-nacl" nacl="life.nmf"... />
+ *  </div>
+ */
+embed.autosize {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.life-view {
+  position: absolute;
+   /* The |top| dimension has to match the #goog-toolbar height. */
+  top: 32px;
+  left: 0;
+  bottom: 0;
+  height: auto;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+/**
+ * Center the elemnent vertically within its parent container.  The parent
+ * container needs to have a display type of "table" for this to work.
+ */
+.vertical-align-center {
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+  display: table-cell;
+}
+
+/**
+ * Right-align text within its parent container.
+ */
+.text-align-right {
+  padding-right: 16px;
+  text-align: right;
+}
+

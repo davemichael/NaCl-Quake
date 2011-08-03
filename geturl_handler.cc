@@ -74,6 +74,9 @@ void GetURLHandler::OnRead(int32_t result) {
     url_response_body_.insert(url_response_body_.end(),
                               buffer_,
                               buffer_ + num_bytes);
+    if (progress_func_) {
+      progress_func_(num_bytes);
+    }
     ReadBody();
   } else {
     // Either the end of the file was reached (|result| == PP_OK) or there

@@ -59,6 +59,7 @@ class FileManager {
   FileManager();
   ~FileManager();
   void FileFinished(const std::string& name, std::vector<uint8_t>& data);
+  void Progress(int32_t bytes);
   class ResponseHandler {
    public:
     ResponseHandler(const std::string& name_arg, FileManager* manager_arg);
@@ -77,6 +78,7 @@ class FileManager {
   int last_fd_;
   PendingMap pending_files_;
   std::tr1::function<void()> ready_func_;
+  std::tr1::function<void(int32_t)> progress_func_;
   pp::Instance* pp_instance_;
 
   static FileManager& instance();
@@ -93,6 +95,9 @@ class FileManager {
   static FileHandle* GetFileHandle(int fd);
   static void set_ready_func(std::tr1::function<void()> func) {
     instance().ready_func_ = func;
+  }
+  static void set_progress_func(std::tr1::function<void(int32_t)> func) {
+    instance().progress_func_ = func;
   }
   static void set_pp_instance(pp::Instance* pp_instance) {
     instance().pp_instance_ = pp_instance;

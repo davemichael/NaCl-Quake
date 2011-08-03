@@ -4,8 +4,6 @@
 
 #include "quake_instance.h"
 
-#include <ppapi/cpp/completion_callback.h>
-#include <ppapi/cpp/var.h>
 #include <stdlib.h>
 
 #include <cassert>
@@ -22,9 +20,14 @@ extern int quake_main(int argc, char* argv[]);
 }
 
 #include "nacl_file.h"
+#include "ppapi/cpp/audio.h"
+#include "ppapi/cpp/completion_callback.h"
+#include "ppapi/cpp/var.h"
 
 //#define PRINTF(...)
 #define PRINTF(...) printf(__VA_ARGS__)
+
+using namespace std::tr1::placeholders;
 
 namespace nacl_quake {
 
@@ -69,12 +72,18 @@ void QuakeInstance::FilesFinished() {
   pthread_create(&quake_main_thread_, NULL, LaunchQuake, this);
 }
 
+void QuakeInstance::DownloadedBytes(int32_t bytes) {
+  PostMessage(bytes);
+}
+
 bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   PRINTF("Init called.  Setting up files.\n");
   using nacl_file::FileManager;
   FileManager::set_pp_instance(this);
   FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
                                              this));
+  FileManager::set_progress_func(std::tr1::bind(&QuakeInstance::DownloadedBytes,
+                                                this, _1));
 //#define USEPAK
 #ifdef USEPAK
   FileManager::Fetch("id1/config.cfg", 1724u);
@@ -88,7 +97,6 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
   }
 #endif
   return true;
-  
 }
 
 bool QuakeInstance::HandleInputEvent(const pp::InputEvent& event) {

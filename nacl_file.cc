@@ -101,7 +101,9 @@ FileManager::FileManager()
     : last_fd_(2) { // start with empty spots for stdout, stdin, and stderr
   PRINTF("Constructing FileManager.\n");
 }
+
 FileManager::~FileManager() {}
+
 void FileManager::FileFinished(const std::string& file_name_arg,
                                std::vector<uint8_t>& data) {
   std::string name = StripPath(file_name_arg);
@@ -148,6 +150,7 @@ void FileManager::Fetch(const std::string& file_name_arg,
     GetURLHandler* handler = GetURLHandler::Create(self.pp_instance_,
                                                    file_name,
                                                    size);
+    handler->set_progress_func(self.progress_func_);
     if (!handler->Start(NewGetURLCallback(&iter->second,
                                           &ResponseHandler::FileFinished))) {
       // Private destructor;  can't follow the example.

@@ -9,6 +9,7 @@
 #include <ppapi/cpp/instance.h>
 #include <ppapi/cpp/url_loader.h>
 #include <ppapi/cpp/url_request_info.h>
+#include <tr1/functional>
 #include <tr1/memory>
 #include <string>
 #include <vector>
@@ -76,6 +77,10 @@ class GetURLHandler {
   // Returns false in case of internal error, and self-destroys.
   bool Start(SharedURLCallbackExecutor url_callback);
 
+  void set_progress_func(std::tr1::function<void (int32_t)> func) {
+    progress_func_ = func;
+  }
+
  private:
   static const int kBufferSize = 32768;
 
@@ -100,6 +105,9 @@ class GetURLHandler {
   void ReadBody();
 
   std::string url_;  // URL to be downloaded.
+  // Optional function to call when bytes are received, passes # bytes just
+  // read.
+  std::tr1::function<void (int32_t)> progress_func_;
   pp::URLRequestInfo url_request_;
   pp::URLLoader url_loader_;  // URLLoader provides an API to download URLs.
   char buffer_[kBufferSize];  // buffer for pp::URLLoader::ReadResponseBody().
