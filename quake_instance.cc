@@ -28,7 +28,7 @@ extern int quake_main(int argc, char* argv[]);
 #define PRINTF(...) printf(__VA_ARGS__)
 
 namespace {
-  int32_t kBytesPerProgressUpdate = 500000;
+  int32_t kBytesPerProgressUpdate = 300000;
 }
 
 using namespace std::tr1::placeholders;
@@ -47,6 +47,9 @@ QuakeInstance::QuakeInstance(PP_Instance instance)
 }
 
 QuakeInstance::~QuakeInstance() {
+  SDL_Event quit_event;
+  quit_event.type = SDL_QUIT;
+  SDL_PushEvent(&quit_event);
   if (quake_main_thread_) {
     pthread_join(quake_main_thread_, NULL);
   }

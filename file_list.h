@@ -63,6 +63,9 @@ const char* file_list[] = {
 "id1/progs/w_spike.mdl",
 "id1/progs/g_nail.mdl",
 "id1/maps/b_shell1.bsp",
+"id1/maps/b_bh25.bsp",
+"id1/maps/b_bh10.bsp",
+"id1/maps/b_bh100.bsp",
 "id1/progs/g_shot.mdl",
 "id1/maps/b_shell0.bsp",
 "id1/maps/b_rock0.bsp",
@@ -461,5 +464,5 @@ const char* file_list[] = {
 "id1/maps/e1m5.bsp",
 "id1/maps/e1m6.bsp",
 "id1/maps/e1m7.bsp",
-"id1/maps/e1m8.bsp"
+"id1/maps/e1m8.bsp",
 NULL};
