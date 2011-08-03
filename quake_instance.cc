@@ -27,6 +27,10 @@ extern int quake_main(int argc, char* argv[]);
 //#define PRINTF(...)
 #define PRINTF(...) printf(__VA_ARGS__)
 
+namespace {
+  int32_t kBytesPerProgressUpdate = 500000;
+}
+
 using namespace std::tr1::placeholders;
 
 namespace nacl_quake {
@@ -35,7 +39,8 @@ QuakeInstance::QuakeInstance(PP_Instance instance)
     : pp::Instance(instance),
       quake_main_thread_(NULL),
       width_(0),
-      height_(0) {
+      height_(0),
+      bytes_since_last_progress_(0) {
   PRINTF("Created instance.\n");
   // Tell the browser we want to handle all Mouse & Keyboard events.
   RequestInputEvents(PP_INPUTEVENT_CLASS_MOUSE | PP_INPUTEVENT_CLASS_KEYBOARD);
@@ -70,18 +75,26 @@ void QuakeInstance::DidChangeView(const pp::Rect& position,
 void QuakeInstance::FilesFinished() {
   //nacl_file::FileManager::Dump("id1/gfx.wad");
   pthread_create(&quake_main_thread_, NULL, LaunchQuake, this);
+  if (bytes_since_last_progress_) {
+    PostMessage(bytes_since_last_progress_);
+    bytes_since_last_progress_ = 0;
+  }
 }
 
 void QuakeInstance::DownloadedBytes(int32_t bytes) {
-  PostMessage(bytes);
+  bytes_since_last_progress_ += bytes;
+  if (bytes_since_last_progress_ >= kBytesPerProgressUpdate) {
+    PostMessage(bytes_since_last_progress_);
+    bytes_since_last_progress_ = 0;
+  }
 }
 
 bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   PRINTF("Init called.  Setting up files.\n");
   using nacl_file::FileManager;
   FileManager::set_pp_instance(this);
-  FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
-                                             this));
+  //FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
+  //                                           this));
   FileManager::set_progress_func(std::tr1::bind(&QuakeInstance::DownloadedBytes,
                                                 this, _1));
 //#define USEPAK
@@ -96,6 +109,7 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
     ++i;
   }
 #endif
+  FilesFinished();
   return true;
 }
 

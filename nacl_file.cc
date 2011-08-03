@@ -44,13 +44,41 @@ namespace {
 // contention.
 namespace nacl_file {
 
-File::File(const std::string& name_arg, std::vector<uint8_t>& data_arg)
-    : name(StripPath(name_arg)) {
-  data.swap(data_arg);
-  PRINTF("Created 'File' object for %s, data is %zd bytes.\n", name.c_str(), data.size());
+Lock::Lock() {
+  pthread_mutex_init(&mutex_, NULL);
+}
+Lock::~Lock() {
+  pthread_mutex_destroy(&mutex_);
+}
+void Lock::Acquire() {
+  pthread_mutex_lock(&mutex_);
+}
+void Lock::Release() {
+  pthread_mutex_unlock(&mutex_);
+}
+bool Lock::Try() {
+  int rv = pthread_mutex_trylock(&mutex_);
+  return (rv == 0);
+}
+
+File::File(const std::string& name_arg)
+    : name(StripPath(name_arg)), lock(new Lock()) {
+  PRINTF("Created 'File' object for %s.\n", name.c_str());
+}
+
+File::~File() {
+  delete lock;
+}
+
+int FileHandle::Length() {
+  ScopedLock lock(file->lock);
+  int size = static_cast<int>(file->data.size());
+  PRINTF("Length is %d\n", size);
+  return size;
 }
 
 int FileHandle::Read(void* buffer, size_t num_bytes) {
+  ScopedLock lock(file->lock);
   PRINTF("Attempting read of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
   if (position == file->data.size()) {
     PRINTF("Returning 0; EOF.\n");
@@ -63,8 +91,8 @@ int FileHandle::Read(void* buffer, size_t num_bytes) {
   return bytes_to_read;
 }
 
-// WARNING, Write is pretty much untested and probably doesn't work.
 int FileHandle::Write(void* buffer, size_t num_bytes) {
+  ScopedLock lock(file->lock);
   PRINTF("Attempting write of %s, position %zd, size %zd, %zd bytes.\n", file->name.c_str(), position, file->data.size(), num_bytes);
   if (position + num_bytes > file->data.size()) {
     file->data.resize(position + num_bytes);
@@ -76,6 +104,7 @@ int FileHandle::Write(void* buffer, size_t num_bytes) {
 }
 
 off_t FileHandle::Seek(off_t offset, int whence) {
+  ScopedLock lock(file->lock);
   PRINTF("Seeking from %zd with offset %ld, size=%zd, whence=", position, static_cast<long>(offset), file->data.size());
   switch (whence) {
     case SEEK_SET:
@@ -107,71 +136,85 @@ FileManager::~FileManager() {}
 void FileManager::FileFinished(const std::string& file_name_arg,
                                std::vector<uint8_t>& data) {
   std::string name = StripPath(file_name_arg);
-  file_map_[name] = File(name, data);
+  File* file = file_map_[name];
+  // Put the data in the file and unlock any waiting reads/writes/etc.
+  file->data.swap(data);
+  file->lock->Release();
   pending_files_.erase(name);
-  if (pending_files_.empty()) {
+  if (pending_files_.empty() && ready_func_) {
     ready_func_();
   }
 }
 
-FileManager::ResponseHandler::ResponseHandler(const std::string& name_arg,
-                                              FileManager* manager_arg)
-      : name_(StripPath(name_arg)), manager_(manager_arg) {
+FileManager::ResponseHandler::ResponseHandler(const std::string& name_arg)
+    : name_(StripPath(name_arg)) {
   PRINTF("Creating ResponseHandler.\n");
 }
 
 void FileManager::ResponseHandler::FileFinished(std::vector<uint8_t>& data,
                                                 int32_t error) {
   PRINTF("Finished downloading %s, %zd bytes, error: %"NACL_PRId32".\n", name_.c_str(), data.size(), error);
-  manager_->FileFinished(StripPath(name_), data);
+  FileManager::instance()->FileFinished(StripPath(name_), data);
   // NOTE:  manager_ deletes us in FileFinished, so |this| is no longer
   //        valid here.
 }
 
-FileManager& FileManager::instance() {
+FileManager::FileManagerPtr FileManager::instance() {
+  // TODO(dmichael): This isn't thread-safe, but it doesn't matter much in
+  // practice because the first usage will happen on the main thread, and it's
+  // OK after the instance is initialized the first time.
   static FileManager file_manager_instance;
-  return file_manager_instance;
+  FileManagerPtr ptr(&file_manager_instance, &file_manager_instance.lock_);
+  return ptr;
 }
 
 void FileManager::Fetch(const std::string& file_name_arg,
                         size_t size) {
   PRINTF("Requesting %s\n", file_name_arg.c_str());
   std::string file_name = StripPath(file_name_arg);
-  FileManager& self = instance();
+  FileManagerPtr self(instance());
   std::pair<PendingMap::iterator, bool> iter_success_pair;
-  iter_success_pair = self.pending_files_.insert(
-      PendingMap::value_type(file_name,
-                             ResponseHandler(file_name, &self)));
+  iter_success_pair = self->pending_files_.insert(
+      PendingMap::value_type(file_name, ResponseHandler(file_name)));
   PendingMap::iterator iter = iter_success_pair.first;
   bool success = iter_success_pair.second;
   // If it was successful, then this is the first time the file has been
   // added, and we should start a URL request.
   if (success) {
-    GetURLHandler* handler = GetURLHandler::Create(self.pp_instance_,
+    GetURLHandler* handler = GetURLHandler::Create(self->pp_instance_,
                                                    file_name,
                                                    size);
-    handler->set_progress_func(self.progress_func_);
+    handler->set_progress_func(self->progress_func_);
     if (!handler->Start(NewGetURLCallback(&iter->second,
                                           &ResponseHandler::FileFinished))) {
       // Private destructor;  can't follow the example.
       // delete handler;
     }
+    // And add an empty, locked File to our map, so reads/writes will block
+    // until the file is ready.
+    std::pair<FileMap::iterator, bool> file_iter_success_pair;
+    file_iter_success_pair = self->file_map_.insert(
+        FileMap::value_type(file_name,
+                            new File(file_name)));
+    if (file_iter_success_pair.second) {
+      file_iter_success_pair.first->second->lock->Acquire();
+    }
   }
 }
 
 bool FileManager::HasFD(int fd) {
-  const FileManager& self(instance());
-  FileHandleMap::const_iterator iter(self.file_handle_map_.find(fd));
-  return (iter != self.file_handle_map_.end());
+  FileManagerPtr self(instance());
+  FileHandleMap::const_iterator iter(self->file_handle_map_.find(fd));
+  return (iter != self->file_handle_map_.end());
 }
 
 int FileManager::GetFD(const std::string& file_name_arg) {
-  FileManager& self(instance());
+  FileManagerPtr self(instance());
   std::string file_name(StripPath(file_name_arg));
-  FileMap::iterator iter = self.file_map_.find(file_name);
-  if (iter != self.file_map_.end()) {
-    int fd = ++self.last_fd_;
-    self.file_handle_map_[fd] = FileHandle(&iter->second);
+  FileMap::iterator iter = self->file_map_.find(file_name);
+  if (iter != self->file_map_.end()) {
+    int fd = ++self->last_fd_;
+    self->file_handle_map_[fd] = FileHandle(iter->second);
     return fd;
   }
   PRINTF("ERROR file not found, %s.\n", file_name_arg.c_str());
@@ -180,27 +223,26 @@ int FileManager::GetFD(const std::string& file_name_arg) {
 }
 
 void FileManager::AddEmptyFile(const std::string& file_name_arg) {
-  FileManager& self(instance());
+  FileManagerPtr self(instance());
   std::string file_name(StripPath(file_name_arg));
-  std::vector<uint8_t> empty_vec;
-  if (self.file_map_.find(file_name) == self.file_map_.end()) {
-    self.file_map_.insert(FileMap::value_type(file_name,
-                                              File(file_name, empty_vec)));
+  if (self->file_map_.find(file_name) == self->file_map_.end()) {
+    self->file_map_.insert(FileMap::value_type(file_name,
+                                               new File(file_name)));
   } else {
     PRINTF("AddEmptyFile:  File %s already exists.\n", file_name.c_str());
   }
 }
 
 void FileManager::Close(int fd) {
-  instance().file_handle_map_.erase(fd);
+  instance()->file_handle_map_.erase(fd);
 }
 
 void FileManager::Dump(const std::string& file_name_arg) {
-  FileManager& self(instance());
+  FileManagerPtr self(instance());
   std::string file_name(StripPath(file_name_arg));
-  FileMap::iterator iter = self.file_map_.find(file_name);
-  if (iter != self.file_map_.end()) {
-    std::vector<uint8_t>& data = iter->second.data;
+  FileMap::iterator iter = self->file_map_.find(file_name);
+  if (iter != self->file_map_.end()) {
+    std::vector<uint8_t>& data = iter->second->data;
     for (size_t i = 0u; i < data.size(); ++i) {
       if (!(i % 16u))
         std::printf("0%zo", i);
@@ -219,9 +261,9 @@ void FileManager::Dump(const std::string& file_name_arg) {
 
 FileHandle* FileManager::GetFileHandle(int fd) {
   PRINTF("Getting file for FD %d.\n", fd);
-  FileManager& self(instance());
-  FileHandleMap::iterator iter = self.file_handle_map_.find(fd);
-  if (iter != self.file_handle_map_.end())
+  FileManagerPtr self(instance());
+  FileHandleMap::iterator iter = self->file_handle_map_.find(fd);
+  if (iter != self->file_handle_map_.end())
     return &iter->second;
 
   return NULL;
@@ -230,6 +272,7 @@ FileHandle* FileManager::GetFileHandle(int fd) {
 }  // namespace nacl_file
 
 int __wrap_open(char const *pathname, int oflags, int perms) {
+  printf("nacl_open, file %s mode %d perms %d\n", pathname, oflags, perms);
   PRINTF("nacl_open, file %s mode %d perms %d\n", pathname, oflags, perms);
   if (oflags & O_WRONLY) {
     // TODO: Make appending fail if append flag is not provided.
@@ -295,12 +338,10 @@ off_t __wrap_lseek(int fd, off_t offset, int whence) {
 }
 
 int nacl_file_length(int fd) {
-  PRINTF("__wrap_length, fd %d\n", fd);
-  nacl_file::FileHandle* handle = nacl_file::FileManager::GetFileHandle(fd);
-  if (handle) {
-    int size = static_cast<int>(handle->file->data.size());
-    PRINTF("__wrap_length is %d\n", size);
-    return size;
+  PRINTF("nacl_file_length, fd %d\n", fd);
+  nacl_file::FileHandle* file = nacl_file::FileManager::GetFileHandle(fd);
+  if (file) {
+    return file->Length();
   }
   errno = ENOENT;
   return -1;

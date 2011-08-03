@@ -31,6 +31,8 @@ GetURLHandler::GetURLHandler(pp::Instance* instance,
       cc_factory_(this) {
   url_request_.SetURL(url);
   url_request_.SetMethod("GET");
+  // TODO(dmichael): Why does this crash?
+  //url_request_.SetCustomContentTransferEncoding("compress, gzip");
   url_response_body_.reserve(expected_size);
 }
 

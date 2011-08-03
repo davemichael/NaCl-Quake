@@ -47,6 +47,8 @@ OMITTED_S_FILES := d_copy.S dosasm.S
 OBJECTS32=$(CFILES:%.c=build/32/%.o) $(CCFILES:%.cc=build/32/%.o)
 OBJECTS64=$(CFILES:%.c=build/64/%.o) $(CCFILES:%.cc=build/64/%.o)
 
+all: quake32 quake64
+
 quake32: $(OBJECTS32)
 	$(CXX) $(OBJECTS32) $(LDFLAGS32) -o quake32.nexe
 	nacl-strip quake32.nexe
@@ -56,8 +58,6 @@ quake64: $(OBJECTS64)
 	nacl-strip quake64.nexe
 
 quake: quake32 quake64
-
-all: quake32 quake64
 
 clean:
 	# remove all .os and .nexe

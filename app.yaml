@@ -7,10 +7,14 @@ handlers:
 - url: /
   static_files: quake.html
   upload: quake.html
-- url: /(.+\.(nmf|nexe|html|css|js))
+- url: /(.+\.(nmf|nexe))
   static_files: \1
   upload: (.+\.(nmf|nexe))
   mime_type: application/x-nacl
+- url: /(.+\.(css|js))
+  static_files: \1
+  upload: (.+\.(css|js))
 - url: /id1/(.+)
   static_files: id1/\1
   upload: id1/(.+)
+

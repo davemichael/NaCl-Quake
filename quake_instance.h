@@ -50,6 +50,7 @@ class QuakeInstance : public pp::Instance {
   pthread_t quake_main_thread_;
   int width_;
   int height_;
+  int32_t bytes_since_last_progress_;
 
   static void* LaunchQuake(void* param);
 };
