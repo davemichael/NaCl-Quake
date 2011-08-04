@@ -16,9 +16,7 @@
       var kBytesExpected = 19000000; //inexact
 
       var bytes_so_far = 0;
-      var times_called = 0;
       function HandleMessage(message_event) {
-        ++times_called;
         // Currently, the only messages we receive are integers telling us how
         // many bytes were just received. Add them to the total.
         bytes_so_far += message_event.data;
@@ -30,12 +28,11 @@
         progress_bar.fillStyle = "black";
         progress_bar.textAlign = "center";
         progress_bar.textBaseline = "middle";
-        //progress_bar.font = 'sans-serif';
-        //var text = bytes_so_far.toString() + "/" + kBytesExpected.toString();
-        //var metrics = progress_bar.measureText(text);
-        progress_bar.fillText(bytes_so_far.toString() + "/" +
-                              kBytesExpected.toString(), 400, 10);
-        //progress_bar.fillText(text, 400, 10);
+        progress_bar.font = 'sans-serif';
+        var text = bytes_so_far.toString() + "/" + kBytesExpected.toString();
+        //progress_bar.fillText(bytes_so_far.toString() + "/" +
+        //                      kBytesExpected.toString(), 400, 10);
+        progress_bar.fillText(text, 400, 10);
         if (bytes_so_far >= kBytesExpected) {
           progress_bar.fillStyle = "rgba(0,0,0)";
           progress_bar.fillRect(0, 0, 800, 20);
@@ -50,7 +47,7 @@
       }
     </script>
   </head>
-  <body id="bodyId" onunload="pageDidUnload()">
+  <body id="bodyId">
     <h1>Quake</h1>
     This is a Native Client port of <a href="http://idsoftware.com/games/quake/quake/">Quake</a> by <a href="http://idsoftware.com">id Software</a>.
 
