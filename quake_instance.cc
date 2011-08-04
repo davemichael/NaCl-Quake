@@ -76,8 +76,6 @@ void QuakeInstance::DidChangeView(const pp::Rect& position,
 }
 
 void QuakeInstance::FilesFinished() {
-  //nacl_file::FileManager::Dump("id1/gfx.wad");
-  pthread_create(&quake_main_thread_, NULL, LaunchQuake, this);
   if (bytes_since_last_progress_) {
     PostMessage(bytes_since_last_progress_);
     bytes_since_last_progress_ = 0;
@@ -96,8 +94,8 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
   PRINTF("Init called.  Setting up files.\n");
   using nacl_file::FileManager;
   FileManager::set_pp_instance(this);
-  //FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
-  //                                           this));
+  FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
+                                             this));
   FileManager::set_progress_func(std::tr1::bind(&QuakeInstance::DownloadedBytes,
                                                 this, _1));
 //#define USEPAK
@@ -111,8 +109,9 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
     FileManager::Fetch(file_list[i]);
     ++i;
   }
-#endif
-  FilesFinished();
+#endif 
+  // Launch the quake 'main' thread.
+  pthread_create(&quake_main_thread_, NULL, LaunchQuake, this);
   return true;
 }
 

@@ -11,39 +11,58 @@
     <link href="quake.css" rel="stylesheet" type="text/css"/>
 
     <script type="text/javascript">
-      var Quake = null;
-      var progress_bar = null;
-      var kBytesExpected = 19000000; //inexact
+      function updateProgressBar(percent, message, styleBackground,
+                                 styleForeground, styleText) {
+        var progress_bar =
+            document.getElementById('progress_bar').getContext('2d');
+        var percent = (bytes_so_far / kBytesExpected);
+        progress_bar.fillStyle = styleForeground ? styleForeground :
+                                                   "rgb(200, 200, 200)";
+        progress_bar.fillRect(0, 0, percent*800, 20);
+        progress_bar.fillStyle = styleBackground ? styleBackground :
+                                                   "#A9A9A9";  // From the css
+        progress_bar.fillRect(percent*800, 0, 800, 20);
+        progress_bar.fillStyle = styleText ? styleText : "black";
+        progress_bar.textAlign = "center";
+        progress_bar.textBaseline = "middle";
+        progress_bar.font = 'sans-serif';
+        progress_bar.fillText(message, 400, 10, 800);
+      }
 
+      function moduleLoadProgress(event) {
+        var loadPercent = 0.0;
+        var loadPercentString;
+        if (event.lengthComputable && event.total > 0) {
+          loadPercent = event.loaded / event.total;
+        } else {
+          // The total length is not yet known.
+          loadPercent = -1.0;
+        }
+        updateProgressBar(loadPercent, "Downloading Quake executable...");
+      }
+
+      function Fade(text, c) {
+        var style = "rgb(" + c + ", " + c + ", " + c + ")";
+        updateProgressBar(0, text, "black", style, "black");
+        if (c > 0) {
+          var new_c = c - 1;
+          setTimeout("Fade('" + text + "', " + new_c + ")", 15);
+        }
+      }
+
+      var kBytesExpected = 19181098;
       var bytes_so_far = 0;
       function HandleMessage(message_event) {
         // Currently, the only messages we receive are integers telling us how
         // many bytes were just received. Add them to the total.
         bytes_so_far += message_event.data;
-        progress_bar.fillStyle = "rgb(200, 200, 200)";
-        var percent = (bytes_so_far / kBytesExpected);
-        progress_bar.fillRect(0, 0, percent*800, 20);
-        progress_bar.fillStyle = "#A9A9A9"; //TODO: hack, copied from css
-        progress_bar.fillRect(percent*800, 0, 800, 20);
-        progress_bar.fillStyle = "black";
-        progress_bar.textAlign = "center";
-        progress_bar.textBaseline = "middle";
-        progress_bar.font = 'sans-serif';
-        var text = bytes_so_far.toString() + "/" + kBytesExpected.toString();
-        //progress_bar.fillText(bytes_so_far.toString() + "/" +
-        //                      kBytesExpected.toString(), 400, 10);
-        progress_bar.fillText(text, 400, 10);
-        if (bytes_so_far >= kBytesExpected) {
-          progress_bar.fillStyle = "rgba(0,0,0)";
-          progress_bar.fillRect(0, 0, 800, 20);
-          console.log("Progress updated " + times_called + " times.");
+        var percent = bytes_so_far / kBytesExpected;
+        if (percent < 1.0) {
+          updateProgressBar(percent,
+              "Downloading level data, graphics, and sound...");
+        } else {
+          Fade("Ready.", 255);
         }
-      } 
-
-      function moduleDidLoad() {
-        Quake = document.getElementById('Quake');
-        progress_bar = document.getElementById('progress_bar').getContext('2d');
-        Quake.addEventListener('message', HandleMessage, false);
       }
     </script>
   </head>
@@ -60,8 +79,13 @@
 </ul>
   <div id="listener">
     <script type="text/javascript">
-      document.getElementById('listener')
-          .addEventListener('load', moduleDidLoad, true);
+      var listener = document.getElementById('listener');
+      //listener.addEventListener('loadstart', moduleDidStartLoad, true);
+      listener.addEventListener('progress', moduleLoadProgress, true);
+      //listener.addEventListener('error', moduleLoadError, true);
+      //listener.addEventListener('abort', moduleLoadAbort, true);
+      //listener.addEventListener('loadend', moduleDidEndLoad, true);
+      listener.addEventListener('message', HandleMessage, true);
     </script>
     <!-- Load the published .nexe.  This includes the 'nacl' attribute which
     shows how to load multi-architecture modules.  Each entry in the "nexes"
