@@ -649,11 +649,10 @@ void Cache_FreeHigh (int new_high_hunk)
 
 void Cache_UnlinkLRU (cache_system_t *cs)
 {
-	if (!cs->lru_next || !cs->lru_prev)
-		Sys_Error ("Cache_UnlinkLRU: NULL link");
-
-	cs->lru_next->lru_prev = cs->lru_prev;
-	cs->lru_prev->lru_next = cs->lru_next;
+	if (cs->lru_next)
+		cs->lru_next->lru_prev = cs->lru_prev;
+	if (cs->lru_prev)
+		cs->lru_prev->lru_next = cs->lru_next;
 	
 	cs->lru_prev = cs->lru_next = NULL;
 }

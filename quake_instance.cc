@@ -44,6 +44,11 @@ QuakeInstance::QuakeInstance(PP_Instance instance)
   PRINTF("Created instance.\n");
   // Tell the browser we want to handle all Mouse & Keyboard events.
   RequestInputEvents(PP_INPUTEVENT_CLASS_MOUSE | PP_INPUTEVENT_CLASS_KEYBOARD);
+  // HACK: This prevents us from crashing by ensuring that the first access
+  // of the core interface is on the main thread, so it gets cached. This
+  // shouldn't be necessary, as it should be safe to make this call off the
+  // main thread any time so long as the module is valid. 
+  pp::Module::Get()->core();
 }
 
 QuakeInstance::~QuakeInstance() {

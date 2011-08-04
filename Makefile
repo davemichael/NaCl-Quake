@@ -37,9 +37,10 @@ CFILES += cd_nacl.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c\
          net_vcr.c net_wso.c pr_cmds.c pr_edict.c pr_exec.c r_aclip.c\
          r_alias.c r_bsp.c r_draw.c r_edge.c r_efrag.c r_light.c r_main.c\
          r_misc.c r_part.c r_sky.c r_sprite.c r_surf.c r_vars.c r_varsa.S\
-         sbar.c screen.c snd_dma.c snd_mem.c snd_mix.c snd_sdl.c stubs.c sv_main.c\
-         sv_move.c sv_phys.c sv_user.c sys_nacl.c vid_sdl.c view.c wad.c\
-         world.c zone.c $(X86_SRCS) $(NONX86_SRCS)
+         sbar.c screen.c snd_dma.c snd_mem.c snd_mix.c snd_sdl.c stubs.c\
+         sv_main.c sv_move.c sv_phys.c sv_user.c sys_nacl.c vid_sdl.c view.c\
+         wad.c world.c zone.c $(X86_SRCS) $(NONX86_SRCS) 
+
 # These files were excluded from FILES because they use instructions
 # disallowed by Native Client
 OMITTED_S_FILES := d_copy.S dosasm.S
