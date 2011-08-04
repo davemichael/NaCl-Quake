@@ -116,8 +116,7 @@ bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) 
 }
 
 bool QuakeInstance::HandleInputEvent(const pp::InputEvent& event) {
-  // TODO: Why does SDL need it to be non-const?
-  SDL_NACL_PushEvent(const_cast<pp::InputEvent*>(&event));
+  SDL_NACL_PushEvent(event);
   return true;
 }
 
