@@ -200,7 +200,7 @@ Con_DPrintf ("CL_SignonReply: %i\n", cls.signon);
 	case 3:	
 		MSG_WriteByte (&cls.message, clc_stringcmd);
 		MSG_WriteString (&cls.message, "begin");
-		Cache_Report ();		// print remaining memory
+		//Cache_Report ();		// print remaining memory
 		break;
 		
 	case 4:

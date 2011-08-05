@@ -113,8 +113,6 @@ typedef struct cache_user_s
 	void	*data;
 } cache_user_t;
 
-void Cache_Flush (void);
-
 void *Cache_Check (cache_user_t *c);
 // returns the cached data, and moves to the head of the LRU list
 // if present, otherwise returns NULL
@@ -124,8 +122,6 @@ void Cache_Free (cache_user_t *c);
 void *Cache_Alloc (cache_user_t *c, int size, char *name);
 // Returns NULL if all purgable data was tossed and there still
 // wasn't enough room.
-
-void Cache_Report (void);
 
 
 
