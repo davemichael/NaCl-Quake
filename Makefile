@@ -20,7 +20,8 @@ LDFLAGS += -lSDL \
            -lpthread
 LDFLAGS32 = $(LDFLAGS) -m32
 LDFLAGS64 = $(LDFLAGS) -m64
-CCFILES := nacl_file.cc geturl_handler.cc quake_module.cc quake_instance.cc
+CCFILES := nacl_file.cc geturl_handler.cc quake_module.cc quake_instance.cc\
+           file_handler.cc
 CFILES :=
 
 X86_SRCS :=  snd_mixa.S sys_dosa.S d_draw.S d_draw16.S d_parta.S d_polysa.S\

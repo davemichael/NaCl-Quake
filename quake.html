@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
           "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html>
+<html> <!-- manifest="quake.appcache"-->
   <!--
   Copyright (c) 2011 The Native Client Authors. All rights reserved.
   Use of this source code is governed by a BSD-style license that can be
@@ -11,6 +11,55 @@
     <link href="quake.css" rel="stylesheet" type="text/css"/>
 
     <script type="text/javascript">
+      /*var appCache = window.applicationCache;
+      appCache.update();
+      if (appCache.status == window.applicationCache.UPDATEREADY) {
+        appCache.swapCache();
+      }*/
+      var storage_acquired = false;
+      var body_loaded = false;
+      function attemptLoadNexe() {
+        // Add the following element to the nexe_holder element.
+        // TODO(dmichael): This seems to cause a timing bug in the plugin?
+        /*<embed name="nacl_module"
+                 id="Quake"
+                 width=800 height=600
+                 src="quake.nmf"
+                 type="application/x-nacl"/>*/
+        if (storage_acquired && body_loaded) {
+          var embed = document.createElement('embed');
+          embed.setAttribute('name', 'nacl_module');
+          embed.setAttribute('id', 'Quake');
+          embed.setAttribute('width', 800);
+          embed.setAttribute('height', 600);
+          embed.setAttribute('src', 'quake.nmf');
+          embed.setAttribute('type', 'application/x-nacl');
+          document.getElementById("nexe_holder").appendChild(embed);
+        }
+      }
+      
+      var kBytesNeeded = 20*1024*1024;
+      var storageInfo = window.webkitStorageInfo;
+      // If we don't already have enough storage, ask for some.
+      storageInfo.queryUsageAndQuota(storageInfo.PERSISTENT,
+          { handleEvent: function(currentUsageInBytes, currentQuotaInBytes) {
+              if (currentQuotaInBytes < kBytesNeeded) {
+                storageInfo.requestQuota(storageInfo.PERSISTENT, kBytesNeeded,
+                    { handleEvent: function(granted_bytes) {
+                        if (granted_bytes >= kBytesNeeded) {
+                          storage_acquired = true;
+                          attemptLoadNexe();
+                        }
+                        else { displayError("Can't store game data."); }
+                      }
+                    });
+            } else {
+              console.log("Already have quota of " + currentQuotaInBytes);
+              storage_acquired = true;
+              attemptLoadNexe();
+            }
+          }});
+     
       function updateProgressBar(percent, message, styleBackground,
                                  styleForeground, styleText) {
         var progress_bar =
@@ -50,17 +99,16 @@
         }
       }
 
-      var kBytesExpected = 19181098;
+      var kBytesExpected = 18258635;
       var bytes_so_far = 0;
       function HandleMessage(message_event) {
         // Currently, the only messages we receive are integers telling us how
         // many bytes were just received. Add them to the total.
         bytes_so_far += message_event.data;
         var percent = bytes_so_far / kBytesExpected;
-        if (percent < 1.0) {
-          updateProgressBar(percent,
-              "Downloading level data, graphics, and sound...");
-        } else {
+        updateProgressBar(percent,
+            "Downloading level data, graphics, and sound...");
+        if (percent >= 1.0) {
           Fade("Ready.", 255);
         }
       }
@@ -68,27 +116,31 @@
   </head>
   <body id="bodyId">
     <h1>Quake in Native Client</h1>
-  <div id="listener">
+  <div id="nexe_holder">
     <script type="text/javascript">
-      var listener = document.getElementById('listener');
+      var listener = document.getElementById('nexe_holder');
       //listener.addEventListener('loadstart', moduleDidStartLoad, true);
       listener.addEventListener('progress', moduleLoadProgress, true);
       //listener.addEventListener('error', moduleLoadError, true);
       //listener.addEventListener('abort', moduleLoadAbort, true);
       //listener.addEventListener('loadend', moduleDidEndLoad, true);
       listener.addEventListener('message', HandleMessage, true);
+
+      body_loaded = true;
+      attemptLoadNexe();
     </script>
     <!-- Load the published .nexe.  This includes the 'nacl' attribute which
     shows how to load multi-architecture modules.  Each entry in the "nexes"
     object in the .nmf manifest file is a key-value pair: the key is the
     runtime ('x86-32', 'x86-64', etc.); the value is a URL for the desired NaCl
     module. -->
-
-    <embed name="nacl_module"
-           id="Quake"
-           width=800 height=600
-           src="quake.nmf"
-           type="application/x-nacl"/>
+    <!--
+     <embed name="nacl_module"
+            id="Quake"
+            width=800 height=600
+            src="quake.nmf"
+            type="application/x-nacl"/>
+    -->
   </div>
    <canvas id="progress_bar"
     width="798" height="20">

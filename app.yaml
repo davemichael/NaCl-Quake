@@ -7,9 +7,9 @@ handlers:
 - url: /
   static_files: quake.html
   upload: quake.html
-- url: /(.+\.(nmf|nexe))
+- url: /(.+\.(nmf|nexe|html))
   static_files: \1
-  upload: (.+\.(nmf|nexe))
+  upload: (.+\.(nmf|nexe|html))
   mime_type: application/x-nacl
 - url: /(.+\.(css|js))
   static_files: \1

@@ -19,13 +19,14 @@ extern int quake_main(int argc, char* argv[]);
 #include <SDL_nacl.h>
 }
 
+#include "nacl/nacl_inttypes.h"
 #include "nacl_file.h"
 #include "ppapi/cpp/audio.h"
 #include "ppapi/cpp/completion_callback.h"
 #include "ppapi/cpp/var.h"
 
-//#define PRINTF(...)
-#define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(...)
+//#define PRINTF(...) printf(__VA_ARGS__)
 
 namespace {
   int32_t kBytesPerProgressUpdate = 300000;
@@ -61,7 +62,7 @@ QuakeInstance::~QuakeInstance() {
 }
 
 void QuakeInstance::DidChangeView(const pp::Rect& position,
-                                const pp::Rect& clip) {
+                                  const pp::Rect& clip) {
   PRINTF("Changing view, (%d, %d) to (%d, %d).\n", width_, height_,
          position.size().width(), position.size().height());
   if (position.size().width() == width() &&
@@ -87,7 +88,7 @@ void QuakeInstance::FilesFinished() {
   }
 }
 
-void QuakeInstance::DownloadedBytes(int32_t bytes) {
+void QuakeInstance::BytesWereRead(int32_t bytes) {
   bytes_since_last_progress_ += bytes;
   if (bytes_since_last_progress_ >= kBytesPerProgressUpdate) {
     PostMessage(bytes_since_last_progress_);
@@ -95,14 +96,22 @@ void QuakeInstance::DownloadedBytes(int32_t bytes) {
   }
 }
 
+void QuakeInstance::BytesWereWritten(int32_t bytes) {
+  static int32_t total_bytes_written = 0;
+  total_bytes_written += bytes;
+  PRINTF("TOTAL BYTES WRITTEN: %"NACL_PRId32"\n", total_bytes_written);
+}
+
 bool QuakeInstance::Init(uint32_t argc, const char* argn[], const char* argv[]) {
   PRINTF("Init called.  Setting up files.\n");
   using nacl_file::FileManager;
-  FileManager::set_pp_instance(this);
+  FileManager::Init(this, 20*1024*1024);
   FileManager::set_ready_func(std::tr1::bind(&QuakeInstance::FilesFinished,
                                              this));
-  FileManager::set_progress_func(std::tr1::bind(&QuakeInstance::DownloadedBytes,
-                                                this, _1));
+  FileManager::set_read_progress_func(
+     std::tr1::bind(&QuakeInstance::BytesWereRead, this, _1));
+  FileManager::set_write_progress_func(
+     std::tr1::bind(&QuakeInstance::BytesWereWritten, this, _1));
 //#define USEPAK
 #ifdef USEPAK
   FileManager::Fetch("id1/config.cfg", 1724u);

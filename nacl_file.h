@@ -1,10 +1,16 @@
 #include <pthread.h>
 
+#include <deque>
 #include <map>
+#include <set>
 #include <string>
 #include <tr1/functional>
 #include <vector>
 
+#include "ppapi/cpp/completion_callback.h"
+#include "ppapi/cpp/file_io.h"
+#include "ppapi/cpp/file_ref.h"
+#include "ppapi/cpp/file_system.h"
 #include "ppapi/cpp/instance.h"
 
 // These are some classes to aid in supporting file opening and reading using
@@ -27,6 +33,9 @@
 //  //<etc>
 namespace nacl_file {
 
+
+// Some synchronization helpers. TODO(dmichael): These really belong in
+// separate files.
 class Lock {
  public:
   Lock();
@@ -76,21 +85,56 @@ class LockedPtr {
   LockedPtr(const LockedPtr& from)
       : pointee_(from.pointee_), scoped_lock_(from.scoped_lock_) {
   }
+  T* get() { return pointee_; }
+  const T* get() const { return pointee_; }
  private:
   LockedPtr& operator=(const LockedPtr&);  // Unimplemented, do not use.
   T* pointee_;
   ScopedLock scoped_lock_;
 };
 
+class ThreadSafeRefCount {
+ public:
+  ThreadSafeRefCount()
+      : ref_(0) {
+  }
+
+  int32_t AddRef() {
+    ScopedLock s(&lock_);
+    return ++ref_;
+  }
+
+  int32_t Release() {
+    ScopedLock s(&lock_);
+    return --ref_;
+  }
+
+ private:
+  int32_t ref_;
+  Lock lock_;
+};
+
+class FileManager;
+
 // A simple struct to represent a file in memory.  It has the name and a vector
 // containing the data for the file.
 struct File {
   ~File();
-  explicit File(const std::string& name_arg);
+  File(const std::string& name_arg, FileManager* fm);
   std::string name;
   std::vector<uint8_t> data;
   Lock* lock;
+  FileManager* file_manager;
+  pp::FileRef* file_ref;
+  pp::FileIO* file_io;
+  std::deque<std::vector<uint8_t> > write_queue;
+  void QueueWrite();
+  void StartWriteImpl();
+  bool exists;
  private:
+  bool write_in_progress;
+  void StartWrite();
+  void WriteFinished();
   File(const File&);  // Unimplemented, do not use.
   File& operator=(const File&);  // Unimplemented, do not use.
 };
@@ -98,8 +142,11 @@ struct File {
 // A handle to a file.  It's really just a pointer to a File and a position
 // in that file.
 struct FileHandle {
-  FileHandle() : position(0), file(NULL) {}
-  explicit FileHandle(File* file_arg) : file(file_arg), position(0) {}
+  FileHandle() : position(0), file(NULL), is_dirty(false) {}
+  explicit FileHandle(File* file_arg) : file(file_arg), position(0),
+                                        is_dirty(false) {
+  }
+  ~FileHandle();
 
   // Read num_bytes from the current position and place it in to buffer.  If
   // there aren't num_bytes bytes left, read what bytes there are.  Returns the
@@ -116,63 +163,109 @@ struct FileHandle {
   File* file;
   size_t position;
   int mode;
+  bool is_dirty;
 };
 
 // A singleton to track all files we fetch.
 class FileManager {
-  FileManager();
+ private:
+  FileManager(pp::Instance* instance);
   ~FileManager();
-  void FileFinished(const std::string& name, std::vector<uint8_t>& data);
-  void Progress(int32_t bytes);
+  void FileSystemOpened(int32_t success);
+
+  enum FETCH_TIME {
+    FETCHED_AT_START, FETCHED_AFTER_START
+  };
+  // This is only called once the FileSystem is initialized. It starts a fetch
+  // from the local file system using FileRef and FileIO. It has an unused
+  // int32_t param first just so it can be used as a completion callback.
+  void DoFetch(int32_t /* cc_result */, const std::string& name,
+               FETCH_TIME fetch_time = FETCHED_AT_START);
+  void FileOpened(int32_t result, File* file, FETCH_TIME fetch_time);
+  void DirectoryCreated(int32_t result, std::string directory,
+                        pp::FileRef* directory_ref);
+  void FileQueried(int32_t result, File* file, PP_FileInfo* info);
+  void FileReadFinished(File* file);
+  void URLRequestFinished(File* file, std::vector<uint8_t>& data);
+
   class ResponseHandler {
    public:
-    ResponseHandler(const std::string& name_arg);
-    void FileFinished(std::vector<uint8_t>& data, int32_t error);
+    ResponseHandler(File* file);
+    void FileFinishedDownload(std::vector<uint8_t>& data, int32_t error);
    private:
-    std::string name_;
-    FileManager* manager_;
+    File* file_;
   };
   friend struct ResponseHandler;
 
-  typedef std::map<std::string, ResponseHandler> PendingMap;
+  typedef std::set<std::string> StringSet;
+  // Files in this set are being fetched from local storage (or we're trying).
+  // They are removed from the set in FileQueried, when we finally know if the
+  // file existed locally.
+  StringSet pending_fetch_set_;
+  // Directories pending creation.
+  StringSet pending_directories_set_;
+
+  typedef std::map<std::string, ResponseHandler> PendingURLMap;
+
   // Note, we never delete from this map, so there's currently no place we
   // delete the raw pointer. If we ever add a file deletion operation, we'll
   // need to lock on the file and then delete it from the map.
   typedef std::map<std::string, File*> FileMap;
+  // Files in this set are currently being downloaded via URLLoader or loaded
+  // via FileIO.
+  FileMap pending_files_;
   FileMap file_map_;
   typedef std::map<int, FileHandle> FileHandleMap;
   FileHandleMap file_handle_map_;
   int last_fd_;
-  PendingMap pending_files_;
   std::tr1::function<void()> ready_func_;
-  std::tr1::function<void(int32_t)> progress_func_;
-  pp::Instance* pp_instance_;
+  std::tr1::function<void(int32_t)> read_progress_func_;
+  std::tr1::function<void(int32_t)> write_progress_func_;
+  pp::Instance* instance_;
   Lock lock_;
+  pp::CompletionCallbackFactory<FileManager, ThreadSafeRefCount>
+      callback_factory_;
+  pp::FileSystem file_system_;
+  bool file_system_opened_;
 
+  static FileManager* file_manager_instance_;
   typedef LockedPtr<FileManager> FileManagerPtr;
   static FileManagerPtr instance();
  public:
+  // Call this first, to init the FileManager.
+  static void Init(pp::Instance* instance_arg, int64_t file_sys_size);
   // Fetch the file from the server asynchronously.  |size| is used to
   // preallocate the buffer (i.e., vector.reserve()).  For large files, this
   // can save time, but it is not required.
   static void Fetch(const std::string& file_name, size_t size = 1024u);
-  static void AddEmptyFile(const std::string& file_name);
+  // Open a file some time after startup; the file will be created if it does
+  // not exist in the local file system.
+  static void OpenNewFile(const std::string& file_name);
   static bool HasFD(int fd);
-  static int GetFD(const std::string& file_name);
+  static int GetFD(const std::string& file_name, bool create);
   static void Close(int fd);
   static void Dump(const std::string& file_name);
   static FileHandle* GetFileHandle(int fd);
   static void set_ready_func(std::tr1::function<void()> func) {
     instance()->ready_func_ = func;
   }
-  static void set_progress_func(std::tr1::function<void(int32_t)> func) {
-    instance()->progress_func_ = func;
+  static void set_read_progress_func(std::tr1::function<void(int32_t)> func) {
+    instance()->read_progress_func_ = func;
   }
-  static void set_pp_instance(pp::Instance* pp_instance) {
-    instance()->pp_instance_ = pp_instance;
+  static std::tr1::function<void(int32_t)> read_progress_func() {
+    return instance()->read_progress_func_;
+  }
+  static void set_write_progress_func(std::tr1::function<void(int32_t)> func) {
+    instance()->write_progress_func_ = func;
+  }
+  static std::tr1::function<void(int32_t)> write_progress_func() {
+    return instance()->write_progress_func_;
+  }
+  static void set_pp_instance(pp::Instance* instance_arg) {
+    instance()->instance_ = instance_arg;
   }
   static pp::Instance* pp_instance() {
-    return instance()->pp_instance_;
+    return instance()->instance_;
   }
 };
 

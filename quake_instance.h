@@ -37,7 +37,10 @@ class QuakeInstance : public pp::Instance {
   virtual void DidChangeView(const pp::Rect& position, const pp::Rect& clip);
 
   void FilesFinished();
-  void DownloadedBytes(int32_t bytes);
+  // Called whenever the nexe downloads some bytes via url loader, or reads some
+  // bytes from a file.
+  void BytesWereRead(int32_t bytes);
+  void BytesWereWritten(int32_t bytes);
 
   int width() const {
     return width_;
