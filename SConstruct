@@ -65,7 +65,7 @@ def environment64():
     return environment
 
 def sources():
-    cc_files = Split("nacl_file.cc geturl_handler.cc quake_module.cc quake_instance.cc")
+    cc_files = Split("nacl_file.cc file_handler.cc geturl_handler.cc quake_module.cc quake_instance.cc")
     c_files = Split("""cd_nacl.c chase.c cl_demo.c cl_input.c cl_main.c cl_parse.c
                        cl_tent.c cmd.c common.c console.c crc.c cvar.c d_edge.c d_fill.c
                        d_init.c d_modech.c d_part.c d_polyse.c d_scan.c d_sky.c d_sprite.c
