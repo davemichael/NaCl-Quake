@@ -45,7 +45,7 @@ def environment32():
     flags = ['-O2', '-m32']
     environment.Append(CCFLAGS = flags)
     environment.Append(CXXFLAGS = flags)
-    environment.PrependENVPath('PATH', findNaclRoot() + '/toolchain/linux_x86/nacl/usr/bin')
+    environment.PrependENVPath('PATH', findNaclRoot() + '/toolchain/linux_x86/i686-nacl/usr/bin')
     environment.ParseConfig('sdl-config --libs --cflags')
     setupTools(environment, 'nacl')
     setupLibraries(environment)
@@ -55,7 +55,7 @@ def environment64():
     environment = baseEnvironment()
     environment['BUILD_DIR'] = 'build/64'
     environment.VariantDir(environment['BUILD_DIR'], '.')
-    environment.PrependENVPath('PATH', findNaclRoot() + '/toolchain/linux_x86/nacl64/usr/bin')
+    environment.PrependENVPath('PATH', findNaclRoot() + '/toolchain/linux_x86/x86_64-nacl/usr/bin')
     flags = ['-O2', '-m64']
     environment.Append(CCFLAGS = flags)
     environment.Append(CXXFLAGS = flags)
